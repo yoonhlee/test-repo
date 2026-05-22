@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JOBSIM — 직무 시뮬레이션 적성 탐색</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── 리셋 & 기반 ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #08090a;
+      --surface:   #111215;
+      --border:    #1e2025;
+      --muted:     #4a4f5c;
+      --text:      #f7f8f8;
+      --text-sub:  #8a8f9c;
+      --accent:    #5e6ad2;
+      --accent-hi: #7b83e0;
+      --danger:    #e05e5e;
+      --success:   #5ec98e;
+      --warn:      #d2a85e;
+      --radius:    10px;
+      --max-w:     720px;
+    }
+
+    html { background: var(--bg); color: var(--text); font-family: 'Pretendard', -apple-system, sans-serif; font-size: 15px; line-height: 1.65; }
+
+    body { min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 40px 20px 80px; }
+
+    /* ─── 레이아웃 ───────────────────────────────────────── */
+    .page { width: 100%; max-width: var(--max-w); animation: fadeIn .25s ease; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ─── 헤더 ──────────────────────────────────────────── */
+    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 48px; }
+    .brand-logo { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: #fff; letter-spacing: -.5px; }
+    .brand-name { font-size: 14px; font-weight: 600; color: var(--text); letter-spacing: -.3px; }
+
+    /* ─── 섹션 제목 ─────────────────────────────────────── */
+    .screen-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; letter-spacing: -.5px; }
+    .screen-desc  { color: var(--text-sub); font-size: 14px; margin-bottom: 32px; }
+
+    /* ─── 카드 ──────────────────────────────────────────── */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
+
+    /* ─── 직무 선택 카드 그리드 ─────────────────────────── */
+    .job-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 28px; }
+
+    .job-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 20px 18px; cursor: pointer; transition: border-color .15s, background .15s; }
+    .job-card:hover { border-color: var(--accent); }
+    .job-card.selected { border-color: var(--accent); background: #14163a; }
+
+    .job-card .job-icon { font-size: 26px; margin-bottom: 10px; }
+    .job-card .job-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .job-card .job-cluster { font-size: 12px; color: var(--text-sub); }
+
+    /* ─── 텍스트 인풋 ───────────────────────────────────── */
+    textarea {
+      width: 100%; background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px;
+      color: var(--text); font-family: inherit; font-size: 14px; line-height: 1.7;
+      padding: 14px 16px; resize: vertical; min-height: 120px; outline: none;
+      transition: border-color .15s;
+    }
+    textarea:focus { border-color: var(--accent); }
+    textarea::placeholder { color: var(--muted); }
+
+    /* ─── 버튼 ──────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 11px 22px; border-radius: 8px; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: opacity .15s; border: none; outline: none;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: .85; }
+    .btn-ghost { background: transparent; border: 1.5px solid var(--border); color: var(--text-sub); }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--text); }
+    .btn:disabled { opacity: .35; cursor: not-allowed; }
+
+    /* ─── 진행 바 ───────────────────────────────────────── */
+    .progress-bar { width: 100%; height: 2px; background: var(--border); border-radius: 2px; margin-bottom: 32px; }
+    .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .3s ease; }
+
+    /* ─── 라벨·배지 ─────────────────────────────────────── */
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; background: #1a1c2e; color: var(--accent); }
+
+    /* ─── 미션 ──────────────────────────────────────────── */
+    .mission-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+    .mission-step   { font-size: 12px; color: var(--text-sub); }
+
+    .scenario-box { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; margin-bottom: 20px; font-size: 14px; color: var(--text-sub); line-height: 1.8; }
+    .scenario-box strong { color: var(--text); }
+
+    .task-box { margin-bottom: 20px; }
+    .task-label { font-size: 12px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 10px; }
+    .task-text  { font-size: 15px; font-weight: 500; color: var(--text); line-height: 1.7; }
+
+    /* ─── 선택지 버튼 ───────────────────────────────────── */
+    .option-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+    .option-btn {
+      background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px;
+      padding: 14px 18px; text-align: left; color: var(--text); font-family: inherit;
+      font-size: 14px; cursor: pointer; transition: border-color .15s, background .15s; line-height: 1.5;
+    }
+    .option-btn:hover { border-color: var(--accent); }
+    .option-btn.selected { border-color: var(--accent); background: #14163a; }
+
+    /* ─── 자기보고 ──────────────────────────────────────── */
+    .self-report { border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-top: 24px; }
+    .sr-title { font-size: 13px; font-weight: 600; color: var(--text-sub); margin-bottom: 18px; text-transform: uppercase; letter-spacing: .6px; }
+    .sr-row { margin-bottom: 18px; }
+    .sr-question { font-size: 14px; color: var(--text); margin-bottom: 10px; }
+    .sr-options { display: flex; gap: 8px; }
+    .sr-btn {
+      flex: 1; padding: 9px 6px; border-radius: 7px; font-size: 13px; font-weight: 500;
+      border: 1.5px solid var(--border); background: var(--surface); color: var(--text-sub);
+      cursor: pointer; transition: border-color .15s, color .15s, background .15s; text-align: center;
+    }
+    .sr-btn:hover { border-color: var(--accent); color: var(--text); }
+    .sr-btn.selected { border-color: var(--accent); background: #14163a; color: var(--text); }
+
+    /* ─── 사전 질문 ─────────────────────────────────────── */
+    .pre-q-card { margin-bottom: 24px; }
+    .pre-q-job-label { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 12px; }
+    .pre-q-text { font-size: 15px; font-weight: 500; margin-bottom: 12px; }
+
+    /* ─── 결과 화면 ─────────────────────────────────────── */
+    .result-section { margin-bottom: 40px; }
+    .result-section-title { font-size: 14px; font-weight: 700; color: var(--text-sub); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+
+    /* 레이더 차트 */
+    .radar-wrap { display: flex; justify-content: center; margin-bottom: 12px; }
+    svg.radar { overflow: visible; }
+    .radar-label { font-size: 12px; fill: var(--text-sub); }
+    .radar-axis-label { font-size: 13px; fill: var(--text); font-weight: 600; }
+
+    /* 적합도 바 */
+    .compat-list { display: flex; flex-direction: column; gap: 14px; }
+    .compat-row { display: flex; align-items: center; gap: 14px; }
+    .compat-name { font-size: 13px; font-weight: 600; min-width: 130px; }
+    .compat-bar-wrap { flex: 1; height: 6px; background: var(--border); border-radius: 3px; }
+    .compat-bar { height: 100%; border-radius: 3px; background: var(--accent); transition: width .6s ease; }
+    .compat-score { font-size: 13px; font-weight: 700; min-width: 40px; text-align: right; }
+
+    /* 사분면 */
+    .quad-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .quad-cell { border: 1.5px solid var(--border); border-radius: 8px; padding: 16px 14px; font-size: 13px; }
+    .quad-cell.highlight { border-color: var(--accent); background: #14163a; }
+    .quad-job-name { font-weight: 700; margin-bottom: 4px; font-size: 14px; }
+    .quad-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+    .quad-desc  { color: var(--text-sub); font-size: 12px; line-height: 1.5; }
+    .quad-q1 .quad-label { color: var(--success); }
+    .quad-q2 .quad-label { color: var(--warn); }
+    .quad-q3 .quad-label { color: var(--accent-hi); }
+    .quad-q4 .quad-label { color: var(--danger); }
+
+    /* 기대-현실 격차 */
+    .gap-table { width: 100%; border-collapse: collapse; }
+    .gap-table th, .gap-table td { padding: 12px 14px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .gap-table th { color: var(--text-sub); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .6px; }
+    .gap-table td:first-child { color: var(--accent); font-weight: 600; white-space: nowrap; }
+
+    /* ─── 구분선 ─────────────────────────────────────────── */
+    hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+    /* ─── 반응형 ─────────────────────────────────────────── */
+    @media (max-width: 520px) {
+      .job-grid { grid-template-columns: 1fr 1fr; }
+      .quad-grid { grid-template-columns: 1fr; }
+      .sr-options { flex-wrap: wrap; }
+      .sr-btn { flex: 0 0 auto; min-width: 80px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── 앱 진입점 ─────────────────────────────────────────── -->
+<div id="app" class="page"></div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   JOBSIM — 직무 시뮬레이션 기반 적성 탐색 웹앱
+   단일 HTML 파일, 외부 라이브러리 없음
+══════════════════════════════════════════════════════════════ */
+
+/* ── 데이터: cluster_weights (파이프라인 04 산출물 직접 임베드) ── */
+const CLUSTER_WEIGHTS = {
+  "C1": { "name": "리더십·인사관리", "n_jobs": 37,  "AX1": 0.0807, "AX2": 0.0414, "AX3": 0.2212, "AX4": 0.3505, "AX5": 0.3062 },
+  "C2": { "name": "데이터·IT",       "n_jobs": 84,  "AX1": 0.4460, "AX2": 0.2227, "AX3": 0.1700, "AX4": 0.1059, "AX5": 0.0554 },
+  "C4": { "name": "정보·행정서비스", "n_jobs": 111, "AX1": 0.2801, "AX2": 0.0748, "AX3": 0.2067, "AX4": 0.1895, "AX5": 0.2490 },
+  "C5": { "name": "기술·현장분석",   "n_jobs": 67,  "AX1": 0.2097, "AX2": 0.2861, "AX3": 0.1851, "AX4": 0.2008, "AX5": 0.1183 },
+  "C6": { "name": "대인서비스",       "n_jobs": 80,  "AX1": 0.0904, "AX2": 0.0889, "AX3": 0.1739, "AX4": 0.1595, "AX5": 0.4873 }
+};
+
+/* ── 5개 직업 정의 ──────────────────────────────────────────── */
+const JOB_DEFS = [
+  { job_code: "quality_engineer",      job_name: "품질관리 엔지니어",  cluster_id: "C5", icon: "🔩", desc: "제조·기술 분야 품질 분석" },
+  { job_code: "cx_manager",            job_name: "고객경험 매니저",    cluster_id: "C6", icon: "💬", desc: "고객 응대 및 경험 설계" },
+  { job_code: "strategy_consultant",   job_name: "전략 컨설턴트",      cluster_id: "C1", icon: "♟️", desc: "조직 전략 수립 및 제언" },
+  { job_code: "data_analyst",          job_name: "데이터 분석가",      cluster_id: "C2", icon: "📊", desc: "데이터 기반 인사이트 도출" },
+  { job_code: "research_analyst",      job_name: "리서치 애널리스트",  cluster_id: "C4", icon: "🔍", desc: "정보 수집·분석 및 리포팅" }
+];
+
+/* ── 미션 데이터 (missions/all_missions.json 임베드) ─────────── */
+const ALL_MISSIONS = [
+  {
+    "mission_id":"quality_01","job_code":"quality_engineer","job_name":"품질관리 엔지니어","cluster_id":"C5",
+    "title":"불량 패턴 관찰",
+    "scenario":"생산라인에서 지난 2주 동안 납품된 제품 중 반품률이 갑자기 3.2%에서 8.7%로 급등했습니다. 품질팀장이 당신에게 데이터를 건네며 '내일 오전까지 원인 분석 초안을 만들어줘'라고 요청했습니다. 반품 건들을 살펴보니 A라인과 B라인의 비율이 8:2이고, 반품 유형은 '외관 불량'이 60%, '치수 오차'가 30%, '기능 불량'이 10%입니다.",
+    "task":"위 데이터를 보고, 가장 먼저 확인해야 할 관찰 포인트 3가지를 설명하고 각각 왜 중요한지 서술해주세요.",
+    "input_type":"text","options":null,
+    "axis_signals":{"AX1":0.2,"AX2":0.45,"AX3":0.2,"AX4":0.05,"AX5":0.1},
+    "rubric":{"AX1":["데이터","비율","수치","분포","통계","분석"],"AX2":["A라인","B라인","외관","치수","관찰","확인","패턴","시점","추적"],"AX3":["우선순위","원인","가설","전략","접근"],"AX4":["팀","협업","공유","보고"],"AX5":["고객","납품처","클레임","소통"]}
+  },
+  {
+    "mission_id":"quality_02","job_code":"quality_engineer","job_name":"품질관리 엔지니어","cluster_id":"C5",
+    "title":"근본 원인 가설 설정",
+    "scenario":"현장 점검 결과, A라인의 조립 공정에서 특정 부품(#SH-320)의 삽입 각도가 설계 기준인 ±0.5°를 넘어 평균 ±1.2°로 벗어나 있음을 확인했습니다. 해당 부품은 납품업체 K사에서 제공하며, 입고 검사에서는 이상이 없었습니다. 라인 오퍼레이터는 '3주 전 지그를 교체한 이후부터 조금 뻑뻑했다'고 증언했습니다.",
+    "task":"이 상황에서 근본 원인으로 가능한 가설 2개를 제시하고, 각 가설을 검증하기 위한 구체적인 방법을 각각 한 가지씩 설명해주세요.",
+    "input_type":"text","options":null,
+    "axis_signals":{"AX1":0.3,"AX2":0.35,"AX3":0.25,"AX4":0.05,"AX5":0.05},
+    "rubric":{"AX1":["분석","데이터","측정","검토","수치","기록"],"AX2":["지그","부품","납품","공정","현장","관찰","확인","검사","추적"],"AX3":["가설","검증","방법","원인","절차","대안"],"AX4":["납품업체","협력사","보고","팀","공유"],"AX5":["소통","오퍼레이터","인터뷰","확인"]}
+  },
+  {
+    "mission_id":"quality_03","job_code":"quality_engineer","job_name":"품질관리 엔지니어","cluster_id":"C5",
+    "title":"개선 제안 작성",
+    "scenario":"근본 원인이 '교체된 지그의 설계 공차 불량'으로 확인되었습니다. 납품업체 K사의 부품 자체에는 문제가 없었습니다. 지그를 원래 설계 사양으로 재제작하면 3일이 걸리며, 임시 방편으로 수작업 조정을 할 경우 공정 속도가 15% 떨어집니다. 품질팀장은 이번 주 안에 생산 목표를 맞춰야 한다는 압박을 받고 있습니다.",
+    "task":"품질팀장에게 제출할 '개선 제안서'의 핵심 내용을 작성하세요. 단기 조치와 장기 조치를 구분하고, 각 조치의 장단점을 간략히 포함해야 합니다.",
+    "input_type":"text","options":null,
+    "axis_signals":{"AX1":0.2,"AX2":0.15,"AX3":0.45,"AX4":0.1,"AX5":0.1},
+    "rubric":{"AX1":["분석","데이터","비용","수치","효율"],"AX2":["검사","모니터링","추적","현장"],"AX3":["단기","장기","우선순위","제안","전략","방안","조치","결정"],"AX4":["보고","팀","승인","일정","관리"],"AX5":["팀장","소통","설득","납득"]}
+  },
+  {
+    "mission_id":"cx_manager_01","job_code":"cx_manager","job_name":"고객경험 매니저","cluster_id":"C6",
+    "title":"고객 불만 접수 대응",
+    "scenario":"온라인 쇼핑몰 고객서비스팀의 당신에게 오늘 오전 한 고객이 격한 어조로 전화를 걸었습니다. '3일 전에 주문한 선물용 케이크가 아직도 안 왔는데, 오늘이 생일 당일이에요! 고객센터에 두 번이나 연락했는데 매번 확인 후 연락 드린다고만 하고 아무 연락이 없었어요. 어떻게 할 거예요?'라고 말하고 있습니다. 시스템을 확인하니 배송사 측 오류로 배송이 지연됐고, 해당 상품은 현재 재고가 없는 상태입니다.",
+    "task":"이 고객에게 지금 당장 어떻게 응대할지 구체적인 말과 행동을 단계별로 서술해주세요.",
+    "input_type":"text","options":null,
+    "axis_signals":{"AX1":0.1,"AX2":0.1,"AX3":0.15,"AX4":0.1,"AX5":0.55},
+    "rubric":{"AX1":["확인","시스템","기록","정보"],"AX2":["상황파악","확인","체크"],"AX3":["해결책","대안","제안","보상"],"AX4":["팀","배송사","협조","에스컬레이션"],"AX5":["사과","공감","이해","사용자","고객","배려","감정","소통","안심"]}
+  },
+  {
+    "mission_id":"cx_manager_02","job_code":"cx_manager","job_name":"고객경험 매니저","cluster_id":"C6",
+    "title":"반복 불만 패턴 파악",
+    "scenario":"지난 달 수집된 고객 불만 200건을 분석했더니 '배송 지연' 37건, '상품 설명 불일치' 52건, '환불 처리 지연' 61건, '직원 불친절' 28건, '포장 불량' 22건이었습니다. 팀장이 '다음 달 NPS(고객 순추천 지수)를 5점 이상 올리려면 어디에 집중해야 할까? 의견 줘봐'라고 물었습니다.",
+    "task":"어떤 불만 유형에 먼저 집중해야 하는지 의견을 제시하고, 그 이유를 고객 관점에서 설명해주세요.",
+    "input_type":"text","options":null,
+    "axis_signals":{"AX1":0.2,"AX2":0.1,"AX3":0.2,"AX4":0.1,"AX5":0.4},
+    "rubric":{"AX1":["데이터","비율","수치","분석","비교"],"AX2":["파악","확인","패턴","원인"],"AX3":["우선순위","전략","집중","선택","근거"],"AX4":["팀","개선","운영","프로세스"],"AX5":["고객","사용자","경험","감정","신뢰","만족","불만","공감"]}
+  },
+  {
+    "mission_id":"cx_manager_03","job_code":"cx_manager","job_name":"고객경험 매니저","cluster_id":"C6",
+    "title":"고객 경험 개선 제안",
+    "scenario":"환불 처리 지연 문제를 조사한 결과, 환불 승인이 여러 부서를 거치며 평균 7.2일이 걸리는 것으로 나타났습니다. 경쟁사의 평균은 2.1일입니다. 현재 프로세스는 '고객 신청 → CS팀 검토 → 물류팀 확인 → 재무팀 최종 승인 → 환불 처리' 순서입니다. 팀장은 '30만 원 이하 소액 환불은 더 빠르게 처리하고 싶다'고 했습니다.",
+    "task":"소액 환불을 빠르게 처리하기 위한 개선안을 제안하고, 그 과정에서 고객에게 어떻게 커뮤니케이션할지 함께 설명해주세요.",
+    "input_type":"text","options":null,
+    "axis_signals":{"AX1":0.15,"AX2":0.1,"AX3":0.25,"AX4":0.15,"AX5":0.35},
+    "rubric":{"AX1":["기준","소액","30만","데이터","분석"],"AX2":["프로세스","단계","확인","파악"],"AX3":["개선안","방안","제안","단계축소","자동화","권한"],"AX4":["부서","협조","승인","프로세스개선","팀"],"AX5":["고객","사용자","안내","커뮤니케이션","알림","신뢰","소통","안심"]}
+  },
+  {
+    "mission_id":"consultant_01","job_code":"strategy_consultant","job_name":"전략 컨설턴트","cluster_id":"C1",
+    "title":"시장 진입 가능성 탐색",
+    "scenario":"중소 이커머스 업체 D사의 CEO가 '동남아 시장에 우리 제품을 판매하고 싶다'고 의뢰했습니다. D사는 국내 뷰티 소비재를 판매하며 연매출 80억 원 규모입니다. 하지만 현재 해외 물류, 현지 마케팅, 규제 대응 경험이 전무합니다. 팀원이 아직 초기 정보 수집 단계라며 당신에게 '이 프로젝트에서 가장 먼저 확인해야 할 것들이 뭐예요?'라고 물었습니다.",
+    "task":"이 프로젝트에서 가장 먼저 조사하고 파악해야 할 핵심 질문 3가지를 선정하고, 각 질문이 왜 중요한지 설명해주세요.",
+    "input_type":"text","options":null,
+    "axis_signals":{"AX1":0.25,"AX2":0.2,"AX3":0.3,"AX4":0.15,"AX5":0.1},
+    "rubric":{"AX1":["데이터","정보","분석","조사","수치","시장규모"],"AX2":["경쟁사","규제","현지","파악","탐색","확인"],"AX3":["핵심","우선순위","전략","목표","방향","선정"],"AX4":["팀","역할","분배","이해관계자","CEO"],"AX5":["고객","소비자","니즈","현지반응","인터뷰"]}
+  },
+  {
+    "mission_id":"consultant_02","job_code":"strategy_consultant","job_name":"전략 컨설턴트","cluster_id":"C1",
+    "title":"전략 옵션 도출",
+    "scenario":"초기 조사 결과, 동남아 시장 중 베트남과 태국이 가장 유망한 것으로 나타났습니다. 베트남은 K-뷰티 선호도가 높고 온라인 쇼핑 성장률이 35%이지만 통관 규제가 복잡합니다. 태국은 시장이 크고 규제가 단순하지만 현지 브랜드 경쟁이 치열합니다. D사의 예산은 1억 5천만 원이며, CEO는 '2년 안에 수익을 내고 싶다'고 했습니다.",
+    "task":"D사가 선택할 수 있는 진입 전략 옵션을 2가지 제시하고, 각 옵션의 기대 효과와 리스크를 비교 분석해주세요.",
+    "input_type":"text","options":null,
+    "axis_signals":{"AX1":0.3,"AX2":0.15,"AX3":0.4,"AX4":0.1,"AX5":0.05},
+    "rubric":{"AX1":["데이터","수치","분석","비교","비용","수익"],"AX2":["시장","경쟁","규제","파악","조사"],"AX3":["전략","옵션","리스크","효과","선택","의사결정","우선순위","방향"],"AX4":["파트너","현지사","팀빌딩","운영","역할"],"AX5":["고객","소비자","현지반응","파트너십"]}
+  },
+  {
+    "mission_id":"consultant_03","job_code":"strategy_consultant","job_name":"전략 컨설턴트","cluster_id":"C1",
+    "title":"최종 전략 제언 작성",
+    "scenario":"2개월간의 분석 끝에 '베트남 선진입 후 1년 차에 태국 확장' 전략을 권고하기로 했습니다. CEO 발표까지 3일 남았고, 당신은 핵심 슬라이드 초안을 작성해야 합니다. 팀 내에서 '베트남 단독 집중'이 더 낫다는 이견도 있습니다.",
+    "task":"CEO에게 전달할 전략 제언의 핵심 논리를 3~4개 문단으로 서술해주세요. 왜 이 전략이 최선인지, 반론(베트남 단독 집중)에 어떻게 대응할지 포함해야 합니다.",
+    "input_type":"text","options":null,
+    "axis_signals":{"AX1":0.2,"AX2":0.1,"AX3":0.45,"AX4":0.15,"AX5":0.1},
+    "rubric":{"AX1":["데이터","근거","수치","분석","논리"],"AX2":["시장","조사","탐색","파악"],"AX3":["전략","제언","결정","이유","우선순위","반론","대응","논거","방향"],"AX4":["팀","역할","이해관계자","보고","합의"],"AX5":["CEO","설득","소통","이해","공감"]}
+  },
+  {
+    "mission_id":"data_analyst_01","job_code":"data_analyst","job_name":"데이터 분석가","cluster_id":"C2",
+    "title":"이상치 탐지",
+    "scenario":"모바일 앱 서비스의 데이터 분석가로 일하고 있습니다. 오늘 아침 대시보드를 확인하니 어제 오후 2시~4시 사이에 결제 전환율이 평소 3.2%에서 0.4%로 급락했다가 다시 회복된 것을 발견했습니다. 같은 시간대 앱 방문자 수는 정상이었고, 결제 오류 로그는 없었습니다. 마케팅팀에서는 그 시간에 푸시 알림 이벤트를 진행했다고 합니다.",
+    "task":"이 이상치를 분석하기 위해 추가로 확인해야 할 데이터 3가지를 제시하고, 각각 어떤 가설을 검증할 수 있는지 설명해주세요.",
+    "input_type":"text","options":null,
+    "axis_signals":{"AX1":0.4,"AX2":0.3,"AX3":0.2,"AX4":0.05,"AX5":0.05},
+    "rubric":{"AX1":["데이터","분석","지표","로그","수치","기록","확인"],"AX2":["이상치","패턴","원인","추적","시간대","확인","탐색","비교"],"AX3":["가설","원인","전략","방향","접근"],"AX4":["팀","마케팅팀","공유","협업"],"AX5":["사용자","고객","UX","경험"]}
+  },
+  {
+    "mission_id":"data_analyst_02","job_code":"data_analyst","job_name":"데이터 분석가","cluster_id":"C2",
+    "title":"A/B 테스트 설계",
+    "scenario":"결제 전환율을 높이기 위해 결제 버튼의 색상과 위치를 변경하는 실험을 하려 합니다. 현재 앱의 일 평균 방문자는 8,000명이며 전환율은 3.2%입니다. 제품팀에서는 '빨간 버튼이 더 잘 클릭된다', 디자인팀에서는 '하단 고정 버튼이 더 효과적'이라고 주장합니다. 실험 기간은 최대 2주입니다.",
+    "task":"A/B 테스트를 어떻게 설계할지 설명해주세요. 실험군 구성, 성공 기준(지표), 주의해야 할 점을 포함해야 합니다.",
+    "input_type":"text","options":null,
+    "axis_signals":{"AX1":0.45,"AX2":0.2,"AX3":0.25,"AX4":0.05,"AX5":0.05},
+    "rubric":{"AX1":["지표","통계","유의성","샘플","데이터","전환율","수치","기준"],"AX2":["확인","관찰","탐색","비교","검증"],"AX3":["설계","방법","전략","구성","기간","목표","성공기준"],"AX4":["팀","제품팀","디자인팀","협업","공유"],"AX5":["사용자","고객","UX","경험"]}
+  },
+  {
+    "mission_id":"data_analyst_03","job_code":"data_analyst","job_name":"데이터 분석가","cluster_id":"C2",
+    "title":"분석 결과 보고",
+    "scenario":"A/B 테스트를 2주 진행한 결과, 기존 대비 '하단 고정 버튼' 그룹의 전환율이 3.2%에서 4.1%로 0.9%p 상승했고 p-value는 0.032였습니다. 반면 '빨간 버튼' 그룹은 3.0%로 오히려 소폭 하락했습니다. 결과 보고 회의에서 마케팅팀장이 '실제로 매출에 얼마나 영향을 미치냐?'고 물었습니다.",
+    "task":"마케팅팀장의 질문에 답하면서, 이 결과를 바탕으로 어떤 의사결정을 권고할지 근거와 함께 설명해주세요.",
+    "input_type":"text","options":null,
+    "axis_signals":{"AX1":0.45,"AX2":0.1,"AX3":0.3,"AX4":0.05,"AX5":0.1},
+    "rubric":{"AX1":["수치","매출","계산","데이터","p-value","통계","전환율","분석","근거"],"AX2":["결과","확인","검증","탐색"],"AX3":["권고","의사결정","전략","제안","적용","도입","결론"],"AX4":["팀","마케팅팀","보고","공유"],"AX5":["사용자","고객","경험","UX"]}
+  },
+  {
+    "mission_id":"research_analyst_01","job_code":"research_analyst","job_name":"리서치 애널리스트","cluster_id":"C4",
+    "title":"조사 범위 정의",
+    "scenario":"스타트업 E사의 마케팅팀에서 '2030세대 Z세대의 소비 행동 변화'를 주제로 리포트 작성을 의뢰했습니다. 예산은 200만 원이고 납기는 3주 후입니다. 처음 회의에서 클라이언트는 '요즘 MZ세대가 왜 이렇게 명품을 많이 사는지 알고 싶어요'라고 말했습니다. 하지만 이 주제는 범위가 너무 넓고 모호합니다.",
+    "task":"이 조사를 실제로 실행 가능하게 만들기 위해, 클라이언트에게 어떤 질문을 해야 하는지 3가지를 제시하고 각 질문이 왜 필요한지 설명해주세요.",
+    "input_type":"text","options":null,
+    "axis_signals":{"AX1":0.3,"AX2":0.2,"AX3":0.25,"AX4":0.1,"AX5":0.15},
+    "rubric":{"AX1":["정보","데이터","범위","목적","정의","수집"],"AX2":["탐색","파악","확인","조사","현황"],"AX3":["범위","방향","우선순위","목표","핵심","전략"],"AX4":["클라이언트","팀","협의","역할"],"AX5":["클라이언트","니즈","소통","요구","이해","공감"]}
+  },
+  {
+    "mission_id":"research_analyst_02","job_code":"research_analyst","job_name":"리서치 애널리스트","cluster_id":"C4",
+    "title":"조사 방법론 선택",
+    "scenario":"클라이언트와 논의 끝에 조사 주제를 '25~34세 직장인의 고가 소비(30만 원 이상) 의사결정 과정'으로 좁혔습니다. 예산 200만 원, 기간 3주 내 완료가 조건입니다. 팀원이 '설문조사가 낫지 않을까요? 빠르고 저렴하잖아요'라고 의견을 냈습니다. 한편 당신은 심층 인터뷰도 고려 중입니다.",
+    "task":"설문조사와 심층 인터뷰 중 어떤 방법론을 선택하거나 어떻게 혼합할지 결정하고, 그 이유를 조사 목적·예산·시간의 관점에서 설명해주세요.",
+    "input_type":"multiple_choice",
+    "options":["설문조사만 진행한다 (빠르고 정량적 데이터 확보에 유리)","심층 인터뷰만 진행한다 (의사결정 과정의 맥락과 감정을 파악하는 데 유리)","설문조사(100명) + 심층 인터뷰(5~8명) 혼합으로 진행한다","온라인 커뮤니티 모니터링과 소셜 리스닝으로 대체한다"],
+    "axis_signals":{"AX1":0.25,"AX2":0.15,"AX3":0.35,"AX4":0.1,"AX5":0.15},
+    "rubric":{"AX1":["정량","데이터","표본","통계","분석"],"AX2":["탐색","맥락","현상","파악","확인"],"AX3":["방법론","선택","결정","혼합","이유","근거","전략"],"AX4":["팀원","협업","역할","일정"],"AX5":["클라이언트","인터뷰","소통","대상자","니즈"]}
+  },
+  {
+    "mission_id":"research_analyst_03","job_code":"research_analyst","job_name":"리서치 애널리스트","cluster_id":"C4",
+    "title":"인사이트 도출 및 제언",
+    "scenario":"조사 결과, 응답자의 62%가 고가 소비 전에 SNS·유튜브 리뷰를 평균 3.2회 이상 탐색하며, 심층 인터뷰에서는 '충동구매처럼 보이지만 사실 오래 고민했다', '리뷰어가 나랑 비슷한 사람이라는 느낌이 들면 더 신뢰한다'는 패턴이 반복 등장했습니다. 클라이언트 E사는 이 결과를 마케팅 캠페인에 활용하고 싶어합니다.",
+    "task":"조사 결과에서 가장 중요한 인사이트 2가지를 뽑고, 각 인사이트를 바탕으로 E사 마케팅팀에 줄 실행 가능한 제언을 한 가지씩 작성해주세요.",
+    "input_type":"text","options":null,
+    "axis_signals":{"AX1":0.35,"AX2":0.2,"AX3":0.25,"AX4":0.05,"AX5":0.15},
+    "rubric":{"AX1":["인사이트","데이터","분석","수치","해석","정보","근거"],"AX2":["패턴","발견","탐색","관찰","확인","공통점"],"AX3":["제언","전략","실행","방향","제안","결론","적용"],"AX4":["팀","캠페인","협업","보고"],"AX5":["고객","소비자","신뢰","공감","관계","니즈","경험"]}
+  }
+];
+
+/* ══════════════════════════════════════════════════════════════
+   앱 상태 관리
+══════════════════════════════════════════════════════════════ */
+const state = {
+  screen: 'select',          // select | preq | mission | result
+  selectedJobs: [],          // 선택된 job_code 배열
+
+  /* 사전 질문 */
+  preqIndex: 0,              // 현재 처리 중인 직업 인덱스
+  preqAnswers: {},           // { job_code: { q1: '', q2: '' } }
+
+  /* 미션 */
+  missionJobIndex: 0,        // 현재 직업 인덱스
+  missionStepIndex: 0,       // 현재 직업 내 미션 순번 (0~2)
+  missionAnswer: '',         // 현재 미션 텍스트 답변
+  selectedOption: null,      // 객관식 선택
+
+  /* 자기보고 */
+  selfReport: {},            // { mission_id: { fun: 1|2|3, difficulty: 1|2|3, imagine: 1|2|3 } }
+
+  /* 채점 결과 */
+  missionScores: {},         // { job_code: [{ AX1..AX5 }] }
+  axisProfile: null,         // { AX1..AX5 } 0~1
+  compatibility: {},         // { job_code: score 0~100 }
+};
+
+/* ══════════════════════════════════════════════════════════════
+   채점 로직
+══════════════════════════════════════════════════════════════ */
+
+/** 키워드 매칭: 답변 내 키워드 출현 수를 0~1 로 정규화 (sigmoid 방식) */
+function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+
+function scoreAnswer(answer, mission) {
+  const text = (answer || '').toLowerCase();
+  const axScores = {};
+  const axes = ['AX1','AX2','AX3','AX4','AX5'];
+
+  axes.forEach(ax => {
+    const keywords = mission.rubric[ax] || [];
+    if (keywords.length === 0) { axScores[ax] = 0; return; }
+
+    let count = 0;
+    keywords.forEach(kw => {
+      // 한국어 키워드 포함 여부
+      if (text.includes(kw.toLowerCase())) count++;
+    });
+    // 카운트를 0~1 정규화: sigmoid((count - max/2) / (max/2))
+    const max = keywords.length;
+    const normalized = sigmoid((count - max * 0.3) / (max * 0.3 + 0.01));
+    axScores[ax] = normalized;
+  });
+
+  // axis_signals 가중치 적용 → 이 미션에서의 축별 기여 점수
+  const weighted = {};
+  axes.forEach(ax => {
+    weighted[ax] = axScores[ax] * (mission.axis_signals[ax] || 0);
+  });
+
+  return weighted;
+}
+
+/** 다중 미션의 축별 점수 평균 → 사용자 프로파일 */
+function computeProfile(missionScoresList) {
+  const axes = ['AX1','AX2','AX3','AX4','AX5'];
+  const totals = Object.fromEntries(axes.map(ax => [ax, 0]));
+  const counts = Object.fromEntries(axes.map(ax => [ax, 0]));
+
+  missionScoresList.forEach(scores => {
+    axes.forEach(ax => {
+      totals[ax] += scores[ax] || 0;
+      counts[ax]++;
+    });
+  });
+
+  const profile = {};
+  axes.forEach(ax => {
+    profile[ax] = counts[ax] > 0 ? totals[ax] / counts[ax] : 0;
+  });
+  return profile;
+}
+
+/** 코사인 유사도 */
+function cosineSim(a, b) {
+  const axes = ['AX1','AX2','AX3','AX4','AX5'];
+  const va = axes.map(k => a[k] || 0);
+  const vb = axes.map(k => b[k] || 0);
+  const dot  = va.reduce((s, v, i) => s + v * vb[i], 0);
+  const magA = Math.sqrt(va.reduce((s, v) => s + v * v, 0));
+  const magB = Math.sqrt(vb.reduce((s, v) => s + v * v, 0));
+  if (magA * magB === 0) return 0;
+  return dot / (magA * magB);
+}
+
+/** 사용자 프로파일 × 군집 가중치 → 직업별 적합도 0~100 */
+function computeCompatibility(profile) {
+  const result = {};
+  state.selectedJobs.forEach(jobCode => {
+    const jobDef = JOB_DEFS.find(j => j.job_code === jobCode);
+    if (!jobDef) { result[jobCode] = 0; return; }
+    const cw = CLUSTER_WEIGHTS[jobDef.cluster_id];
+    if (!cw) { result[jobCode] = 0; return; }
+    const sim = cosineSim(profile, cw);
+    result[jobCode] = Math.round((sim + 1) / 2 * 100);  // -1~1 → 0~100
+  });
+  return result;
+}
+
+/* ── 자기보고 집계: 감정 점수 0~1 ──────────────────────────── */
+function emotionScore(jobCode) {
+  const missions = getMissionsForJob(jobCode);
+  let funSum = 0, cnt = 0;
+  missions.forEach(m => {
+    const sr = state.selfReport[m.mission_id];
+    if (!sr) return;
+    // fun: 1=재밌음(good), 2=보통, 3=지루함(bad)
+    funSum += (4 - sr.fun) / 3;  // 역변환: 재밌음=1, 지루함=0.33
+    cnt++;
+  });
+  return cnt > 0 ? funSum / cnt : 0.5;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   유틸
+══════════════════════════════════════════════════════════════ */
+function getMissionsForJob(jobCode) {
+  return ALL_MISSIONS.filter(m => m.job_code === jobCode);
+}
+
+function getCurrentMission() {
+  const jobCode = state.selectedJobs[state.missionJobIndex];
+  const missions = getMissionsForJob(jobCode);
+  return missions[state.missionStepIndex] || null;
+}
+
+function totalMissionCount() {
+  return state.selectedJobs.reduce((s, jc) => s + getMissionsForJob(jc).length, 0);
+}
+
+function completedMissionCount() {
+  let n = 0;
+  for (let i = 0; i < state.missionJobIndex; i++) {
+    n += getMissionsForJob(state.selectedJobs[i]).length;
+  }
+  n += state.missionStepIndex;
+  return n;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   렌더링 함수들
+══════════════════════════════════════════════════════════════ */
+const app = document.getElementById('app');
+
+function render() {
+  const screens = {
+    select:  renderSelect,
+    preq:    renderPreq,
+    mission: renderMission,
+    result:  renderResult,
+  };
+  const fn = screens[state.screen];
+  if (fn) { app.innerHTML = fn(); attachEvents(); }
+}
+
+/* ─── 헤더 (공통) ─────────────────────────────────────────── */
+function renderBrand() {
+  return `<div class="brand">
+    <div class="brand-logo">JS</div>
+    <span class="brand-name">JOBSIM</span>
+  </div>`;
+}
+
+/* ─── 화면 1: 직무 선택 ─────────────────────────────────── */
+function renderSelect() {
+  const cards = JOB_DEFS.map(j => {
+    const sel = state.selectedJobs.includes(j.job_code) ? 'selected' : '';
+    const cw  = CLUSTER_WEIGHTS[j.cluster_id];
+    return `<div class="job-card ${sel}" data-jobcode="${j.job_code}">
+      <div class="job-icon">${j.icon}</div>
+      <div class="job-name">${j.job_name}</div>
+      <div class="job-cluster">${cw ? cw.name : j.cluster_id}</div>
+    </div>`;
+  }).join('');
+
+  const canStart = state.selectedJobs.length > 0;
+
+  return `${renderBrand()}
+    <h1 class="screen-title">어떤 직무를 탐색할까요?</h1>
+    <p class="screen-desc">직무를 1개 이상 선택하세요. 각 직무에 대해 실제 업무 미션을 수행합니다.</p>
+    <div class="job-grid">${cards}</div>
+    <button class="btn btn-primary" id="btn-start" ${canStart ? '' : 'disabled'}>
+      시작하기 →
+    </button>`;
+}
+
+/* ─── 화면 2: 사전 질문 ─────────────────────────────────── */
+function renderPreq() {
+  const jobCode = state.selectedJobs[state.preqIndex];
+  const jobDef  = JOB_DEFS.find(j => j.job_code === jobCode);
+  const ans     = state.preqAnswers[jobCode] || { q1: '', q2: '' };
+  const total   = state.selectedJobs.length;
+  const pct     = Math.round((state.preqIndex / total) * 100);
+
+  return `${renderBrand()}
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <h1 class="screen-title">시작 전 잠깐 — ${state.preqIndex + 1} / ${total}</h1>
+    <p class="screen-desc">이 직무에 대한 첫인상을 솔직하게 적어주세요.</p>
+
+    <div class="pre-q-card card">
+      <div class="pre-q-job-label">${jobDef.icon} ${jobDef.job_name}</div>
+      <div class="pre-q-text">이 직무가 하루에 가장 많이 하는 일이 뭐일 것 같아?</div>
+      <textarea id="preq-q1" placeholder="자유롭게 적어보세요…" rows="3">${ans.q1}</textarea>
+    </div>
+
+    <div class="pre-q-card card" style="margin-top:14px;">
+      <div class="pre-q-job-label">${jobDef.icon} ${jobDef.job_name}</div>
+      <div class="pre-q-text">이 직무에서 가장 자주 쓰는 능력이 뭐일 것 같아?</div>
+      <textarea id="preq-q2" placeholder="자유롭게 적어보세요…" rows="3">${ans.q2}</textarea>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:24px;">
+      ${state.preqIndex > 0 ? '<button class="btn btn-ghost" id="btn-preq-back">← 이전</button>' : ''}
+      <button class="btn btn-primary" id="btn-preq-next" style="margin-left:auto;">
+        ${state.preqIndex < total - 1 ? '다음 직무 →' : '미션 시작 →'}
+      </button>
+    </div>`;
+}
+
+/* ─── 화면 3: 미션 수행 ─────────────────────────────────── */
+function renderMission() {
+  const mission  = getCurrentMission();
+  if (!mission) return '<p>미션 없음</p>';
+
+  const jobCode  = state.selectedJobs[state.missionJobIndex];
+  const jobDef   = JOB_DEFS.find(j => j.job_code === jobCode);
+  const total    = totalMissionCount();
+  const done     = completedMissionCount();
+  const pct      = Math.round((done / total) * 100);
+
+  const isSrDone = !!state.selfReport[mission.mission_id];
+
+  /* 답변 입력 UI */
+  let answerUI = '';
+  if (mission.input_type === 'multiple_choice' && mission.options) {
+    const opts = mission.options.map((opt, i) => {
+      const sel = state.selectedOption === i ? 'selected' : '';
+      return `<button class="option-btn ${sel}" data-opt="${i}">${opt}</button>`;
+    }).join('');
+    answerUI = `<div class="option-list">${opts}</div>`;
+  } else {
+    answerUI = `<textarea id="mission-answer" placeholder="여기에 답변을 작성하세요…" rows="6">${state.missionAnswer}</textarea>`;
+  }
+
+  /* 자기보고 UI */
+  const sr = state.selfReport[mission.mission_id] || {};
+  const srUI = isSrDone ? '' : `
+    <div class="self-report" id="self-report-panel">
+      <div class="sr-title">미션 마무리 — 잠깐 돌아보기</div>
+      <div class="sr-row">
+        <div class="sr-question">이 미션, 어떠했어?</div>
+        <div class="sr-options">
+          <button class="sr-btn ${sr.fun===1?'selected':''}" data-sr="fun" data-val="1">😄 재밌었어</button>
+          <button class="sr-btn ${sr.fun===2?'selected':''}" data-sr="fun" data-val="2">😐 보통</button>
+          <button class="sr-btn ${sr.fun===3?'selected':''}" data-sr="fun" data-val="3">😑 지루했어</button>
+        </div>
+      </div>
+      <div class="sr-row">
+        <div class="sr-question">난이도는?</div>
+        <div class="sr-options">
+          <button class="sr-btn ${sr.difficulty===1?'selected':''}" data-sr="difficulty" data-val="1">😌 쉬웠어</button>
+          <button class="sr-btn ${sr.difficulty===2?'selected':''}" data-sr="difficulty" data-val="2">🤔 적당했어</button>
+          <button class="sr-btn ${sr.difficulty===3?'selected':''}" data-sr="difficulty" data-val="3">😓 어려웠어</button>
+        </div>
+      </div>
+      <div class="sr-row">
+        <div class="sr-question">이 일을 매일 8시간 한다고 상상하면?</div>
+        <div class="sr-options">
+          <button class="sr-btn ${sr.imagine===1?'selected':''}" data-sr="imagine" data-val="1">👍 할 만함</button>
+          <button class="sr-btn ${sr.imagine===2?'selected':''}" data-sr="imagine" data-val="2">🤷 모르겠음</button>
+          <button class="sr-btn ${sr.imagine===3?'selected':''}" data-sr="imagine" data-val="3">👎 싫음</button>
+        </div>
+      </div>
+    </div>`;
+
+  const srComplete = isSrDone || (sr.fun && sr.difficulty && sr.imagine);
+  const canNext = (mission.input_type === 'multiple_choice'
+    ? state.selectedOption !== null
+    : state.missionAnswer.trim().length > 10)
+    && (isSrDone || srComplete);
+
+  /* 진행 표시 */
+  const jobMissions  = getMissionsForJob(jobCode);
+  const missionLabel = `${jobDef.job_name} — 미션 ${state.missionStepIndex + 1} / ${jobMissions.length}`;
+
+  return `${renderBrand()}
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+
+    <div class="mission-header">
+      <span class="badge">${jobDef.icon} ${jobDef.job_name}</span>
+      <span class="mission-step">${missionLabel}</span>
+    </div>
+
+    <h1 class="screen-title">${mission.title}</h1>
+
+    <div class="scenario-box">${mission.scenario}</div>
+
+    <div class="task-box">
+      <div class="task-label">📋 수행 과제</div>
+      <div class="task-text">${mission.task}</div>
+    </div>
+
+    ${answerUI}
+    ${srUI}
+
+    <div style="display:flex; gap:10px; margin-top:24px;">
+      <button class="btn btn-primary" id="btn-mission-next" ${canNext ? '' : 'disabled'}>
+        ${isLastMission() ? '결과 보기 →' : '다음 →'}
+      </button>
+    </div>`;
+}
+
+function isLastMission() {
+  const jobCode  = state.selectedJobs[state.missionJobIndex];
+  const missions = getMissionsForJob(jobCode);
+  return state.missionJobIndex === state.selectedJobs.length - 1
+      && state.missionStepIndex === missions.length - 1;
+}
+
+/* ─── 화면 4: 결과 ──────────────────────────────────────── */
+function renderResult() {
+  /* 결과 계산 */
+  const allScores = [];
+  Object.values(state.missionScores).forEach(arr => allScores.push(...arr));
+  state.axisProfile    = computeProfile(allScores);
+  state.compatibility  = computeCompatibility(state.axisProfile);
+
+  return `${renderBrand()}
+    <h1 class="screen-title">당신의 직무 적성 프로파일</h1>
+    <p class="screen-desc">미션 수행 패턴과 자기보고를 기반으로 분석했습니다.</p>
+
+    ${renderRadarSection()}
+    ${renderCompatSection()}
+    ${renderQuadSection()}
+    ${renderGapSection()}
+
+    <hr />
+    <button class="btn btn-ghost" id="btn-restart">↺ 처음부터 다시하기</button>`;
+}
+
+/* ── 레이더 차트 (SVG) ──────────────────────────────────── */
+function renderRadarSection() {
+  const profile = state.axisProfile;
+  const axes = [
+    { key:'AX1', label:'정보분석·논리' },
+    { key:'AX2', label:'관찰·탐색' },
+    { key:'AX3', label:'전략·판단' },
+    { key:'AX4', label:'리더십·조직' },
+    { key:'AX5', label:'대인서비스' },
+  ];
+  const N   = axes.length;
+  const cx  = 180, cy = 180, R = 130;
+  const labelR = R + 30;
+
+  // 각도 계산 (위쪽부터 시계방향)
+  function ptOnCircle(r, i) {
+    const angle = (Math.PI * 2 * i / N) - Math.PI / 2;
+    return [cx + r * Math.cos(angle), cy + r * Math.sin(angle)];
+  }
+
+  // 그리드 (5단계)
+  let gridSVG = '';
+  [0.2, 0.4, 0.6, 0.8, 1.0].forEach(ratio => {
+    const pts = axes.map((_, i) => ptOnCircle(R * ratio, i).join(','));
+    gridSVG += `<polygon points="${pts.join(' ')}" fill="none" stroke="#1e2025" stroke-width="1"/>`;
+  });
+
+  // 축선
+  let axisSVG = axes.map((_, i) => {
+    const [x, y] = ptOnCircle(R, i);
+    return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#1e2025" stroke-width="1"/>`;
+  }).join('');
+
+  // 사용자 데이터 폴리곤
+  const userPts = axes.map((ax, i) => ptOnCircle(R * (profile[ax.key] || 0), i).join(','));
+  const userPoly = `<polygon points="${userPts.join(' ')}" fill="rgba(94,106,210,0.25)" stroke="#5e6ad2" stroke-width="2"/>`;
+
+  // 라벨
+  const labelSVG = axes.map((ax, i) => {
+    const [lx, ly] = ptOnCircle(labelR, i);
+    const textAnchor = lx < cx - 10 ? 'end' : lx > cx + 10 ? 'start' : 'middle';
+    return `<text x="${lx}" y="${ly + 5}" text-anchor="${textAnchor}" class="radar-axis-label" style="fill:#f7f8f8;font-size:12px;font-weight:600;">${ax.label}</text>`;
+  }).join('');
+
+  // 점수 텍스트
+  const scoreSVG = axes.map((ax, i) => {
+    const val = Math.round((profile[ax.key] || 0) * 100);
+    const [px, py] = ptOnCircle(R * (profile[ax.key] || 0) + 16, i);
+    return `<text x="${px}" y="${py}" text-anchor="middle" style="fill:#5e6ad2;font-size:11px;font-weight:700;">${val}</text>`;
+  }).join('');
+
+  const svg = `<svg class="radar" width="360" height="360" viewBox="0 0 360 360">
+    ${gridSVG}${axisSVG}${userPoly}${labelSVG}${scoreSVG}
+  </svg>`;
+
+  return `<div class="result-section">
+    <div class="result-section-title">사고방식 5축 프로파일</div>
+    <div class="radar-wrap">${svg}</div>
+  </div>`;
+}
+
+/* ── 적합도 바 ──────────────────────────────────────────── */
+function renderCompatSection() {
+  const items = state.selectedJobs.map(jc => {
+    const jd  = JOB_DEFS.find(j => j.job_code === jc);
+    const sc  = state.compatibility[jc] || 0;
+    return { jc, name: jd ? jd.job_name : jc, icon: jd ? jd.icon : '', score: sc };
+  }).sort((a, b) => b.score - a.score);
+
+  const rows = items.map(it => {
+    const color = it.score >= 70 ? 'var(--success)' : it.score >= 50 ? 'var(--accent)' : 'var(--muted)';
+    return `<div class="compat-row">
+      <span class="compat-name">${it.icon} ${it.name}</span>
+      <div class="compat-bar-wrap">
+        <div class="compat-bar" style="width:${it.score}%;background:${color};"></div>
+      </div>
+      <span class="compat-score" style="color:${color};">${it.score}점</span>
+    </div>`;
+  }).join('');
+
+  return `<div class="result-section">
+    <div class="result-section-title">직무 적합도</div>
+    <div class="compat-list">${rows}</div>
+  </div>`;
+}
+
+/* ── 사분면 분석 ────────────────────────────────────────── */
+function renderQuadSection() {
+  /* 성과 점수: 해당 직업의 미션 점수 평균 (0~1) */
+  function perfScore(jobCode) {
+    const scores = state.missionScores[jobCode] || [];
+    if (scores.length === 0) return 0.5;
+    const axes = ['AX1','AX2','AX3','AX4','AX5'];
+    const avg  = scores.reduce((s, sc) => s + axes.reduce((a, k) => a + (sc[k]||0), 0) / axes.length, 0) / scores.length;
+    return avg;
+  }
+
+  const QUADS = {
+    q1: { label:'강한 후보', desc:'잘했고 즐거웠어. 적성과 동기가 모두 일치해.', cls:'quad-q1' },
+    q2: { label:'능력은 있지만…', desc:'성과는 좋지만 흥미가 낮아. 지속 동기를 점검해봐.', cls:'quad-q2' },
+    q3: { label:'학습 가능성', desc:'즐거웠지만 아직 서투른 것 같아. 경험이 쌓이면 달라질 수 있어.', cls:'quad-q3' },
+    q4: { label:'비적합', desc:'성과도 낮고 즐겁지도 않았어. 다른 방향이 맞을 수 있어.', cls:'quad-q4' },
+  };
+
+  const cards = state.selectedJobs.map(jc => {
+    const jd   = JOB_DEFS.find(j => j.job_code === jc);
+    const perf = perfScore(jc);
+    const emo  = emotionScore(jc);
+    const q    = perf >= 0.45 && emo >= 0.6 ? 'q1'
+               : perf >= 0.45 && emo < 0.6  ? 'q2'
+               : perf < 0.45  && emo >= 0.6  ? 'q3'
+               :                               'q4';
+    const qDef = QUADS[q];
+    const highlight = q === 'q1' ? 'highlight' : '';
+    return `<div class="quad-cell ${qDef.cls} ${highlight}">
+      <div class="quad-job-name">${jd ? jd.icon : ''} ${jd ? jd.job_name : jc}</div>
+      <div class="quad-label">${qDef.label}</div>
+      <div class="quad-desc">${qDef.desc}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="result-section">
+    <div class="result-section-title">성과 × 감정 사분면</div>
+    <div class="quad-grid">${cards}</div>
+  </div>`;
+}
+
+/* ── 기대-현실 격차 ─────────────────────────────────────── */
+function renderGapSection() {
+  const rows = state.selectedJobs.map(jc => {
+    const jd  = JOB_DEFS.find(j => j.job_code === jc);
+    const ans = state.preqAnswers[jc] || {};
+    const m1  = getMissionsForJob(jc)[0];
+    const m2  = getMissionsForJob(jc)[1];
+    return `<tr>
+      <td>${jd ? jd.icon + ' ' + jd.job_name : jc}</td>
+      <td>
+        <div style="margin-bottom:6px;"><span style="color:var(--text-sub);font-size:11px;">예상 주요 업무</span><br>${ans.q1 || '(입력 없음)'}</div>
+        <div><span style="color:var(--text-sub);font-size:11px;">예상 핵심 능력</span><br>${ans.q2 || '(입력 없음)'}</div>
+      </td>
+      <td>
+        <div style="margin-bottom:6px;"><span style="color:var(--text-sub);font-size:11px;">실제 미션 1</span><br>${m1 ? m1.title + ' — ' + m1.task.slice(0,60) + '…' : ''}</div>
+        <div><span style="color:var(--text-sub);font-size:11px;">실제 미션 2</span><br>${m2 ? m2.title + ' — ' + m2.task.slice(0,60) + '…' : ''}</div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="result-section">
+    <div class="result-section-title">기대 vs 현실</div>
+    <div style="overflow-x:auto;">
+    <table class="gap-table">
+      <thead><tr><th>직무</th><th>사전 예상</th><th>실제 미션</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    </div>
+  </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   이벤트 바인딩
+══════════════════════════════════════════════════════════════ */
+function attachEvents() {
+  /* 직무 선택 카드 */
+  document.querySelectorAll('.job-card').forEach(el => {
+    el.addEventListener('click', () => {
+      const jc = el.dataset.jobcode;
+      const idx = state.selectedJobs.indexOf(jc);
+      if (idx >= 0) state.selectedJobs.splice(idx, 1);
+      else state.selectedJobs.push(jc);
+      render();
+    });
+  });
+
+  /* 시작 버튼 */
+  const btnStart = document.getElementById('btn-start');
+  if (btnStart) {
+    btnStart.addEventListener('click', () => {
+      state.screen     = 'preq';
+      state.preqIndex  = 0;
+      render();
+    });
+  }
+
+  /* 사전질문 다음/이전 */
+  const btnPreqNext = document.getElementById('btn-preq-next');
+  if (btnPreqNext) {
+    btnPreqNext.addEventListener('click', () => {
+      const jc   = state.selectedJobs[state.preqIndex];
+      const q1   = document.getElementById('preq-q1');
+      const q2   = document.getElementById('preq-q2');
+      state.preqAnswers[jc] = { q1: q1 ? q1.value : '', q2: q2 ? q2.value : '' };
+
+      if (state.preqIndex < state.selectedJobs.length - 1) {
+        state.preqIndex++;
+        render();
+      } else {
+        state.screen           = 'mission';
+        state.missionJobIndex  = 0;
+        state.missionStepIndex = 0;
+        state.missionAnswer    = '';
+        state.selectedOption   = null;
+        render();
+      }
+    });
+  }
+  const btnPreqBack = document.getElementById('btn-preq-back');
+  if (btnPreqBack) {
+    btnPreqBack.addEventListener('click', () => {
+      state.preqIndex--;
+      render();
+    });
+  }
+
+  /* 미션 답변 텍스트 */
+  const ta = document.getElementById('mission-answer');
+  if (ta) {
+    ta.addEventListener('input', () => {
+      state.missionAnswer = ta.value;
+      refreshMissionNextBtn();
+    });
+  }
+
+  /* 객관식 선택 */
+  document.querySelectorAll('.option-btn').forEach(el => {
+    el.addEventListener('click', () => {
+      state.selectedOption = parseInt(el.dataset.opt);
+      document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+      el.classList.add('selected');
+      refreshMissionNextBtn();
+    });
+  });
+
+  /* 자기보고 버튼 */
+  document.querySelectorAll('.sr-btn').forEach(el => {
+    el.addEventListener('click', () => {
+      const mission = getCurrentMission();
+      if (!mission) return;
+      if (!state.selfReport[mission.mission_id])
+        state.selfReport[mission.mission_id] = {};
+      const srKey = el.dataset.sr;
+      const val   = parseInt(el.dataset.val);
+      state.selfReport[mission.mission_id][srKey] = val;
+      // 같은 행의 다른 버튼 선택 해제
+      el.closest('.sr-options').querySelectorAll('.sr-btn').forEach(b => b.classList.remove('selected'));
+      el.classList.add('selected');
+      refreshMissionNextBtn();
+    });
+  });
+
+  /* 미션 다음 버튼 */
+  const btnMissionNext = document.getElementById('btn-mission-next');
+  if (btnMissionNext) {
+    btnMissionNext.addEventListener('click', () => {
+      const mission = getCurrentMission();
+      if (!mission) return;
+
+      /* 현재 답변 저장 */
+      const answer = mission.input_type === 'multiple_choice'
+        ? (mission.options[state.selectedOption] || '')
+        : state.missionAnswer;
+
+      /* 자기보고 최종 저장 */
+      const srPanel = document.getElementById('self-report-panel');
+      if (srPanel) {
+        /* (이미 sr-btn 클릭으로 저장됨) */
+      }
+
+      /* 채점 */
+      const scored = scoreAnswer(answer, mission);
+      if (!state.missionScores[mission.job_code])
+        state.missionScores[mission.job_code] = [];
+      state.missionScores[mission.job_code].push(scored);
+
+      /* 다음 미션 또는 다음 직업으로 */
+      advanceMission();
+    });
+  }
+
+  /* 다시하기 */
+  const btnRestart = document.getElementById('btn-restart');
+  if (btnRestart) {
+    btnRestart.addEventListener('click', () => {
+      Object.assign(state, {
+        screen:'select', selectedJobs:[], preqIndex:0, preqAnswers:{},
+        missionJobIndex:0, missionStepIndex:0, missionAnswer:'', selectedOption:null,
+        selfReport:{}, missionScores:{}, axisProfile:null, compatibility:{},
+      });
+      render();
+    });
+  }
+}
+
+function refreshMissionNextBtn() {
+  const btn     = document.getElementById('btn-mission-next');
+  if (!btn) return;
+  const mission = getCurrentMission();
+  if (!mission) return;
+  const sr      = state.selfReport[mission.mission_id] || {};
+  const srDone  = sr.fun && sr.difficulty && sr.imagine;
+  const ansDone = mission.input_type === 'multiple_choice'
+    ? state.selectedOption !== null
+    : state.missionAnswer.trim().length > 10;
+  btn.disabled  = !(srDone && ansDone);
+}
+
+function advanceMission() {
+  const jobCode  = state.selectedJobs[state.missionJobIndex];
+  const missions = getMissionsForJob(jobCode);
+
+  if (state.missionStepIndex < missions.length - 1) {
+    /* 같은 직업의 다음 미션 */
+    state.missionStepIndex++;
+    state.missionAnswer  = '';
+    state.selectedOption = null;
+  } else if (state.missionJobIndex < state.selectedJobs.length - 1) {
+    /* 다음 직업의 첫 미션 */
+    state.missionJobIndex++;
+    state.missionStepIndex = 0;
+    state.missionAnswer    = '';
+    state.selectedOption   = null;
+  } else {
+    /* 모든 미션 완료 → 결과 화면 */
+    state.screen = 'result';
+  }
+  render();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   초기 실행
+══════════════════════════════════════════════════════════════ */
+render();
+</script>
+</body>
+</html>
