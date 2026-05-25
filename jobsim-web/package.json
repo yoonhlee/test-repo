@@ -4,8 +4,8 @@
   "description": "JOBSIM — 직무 시뮬레이션 적성 탐색 웹앱",
   "type": "module",
   "scripts": {
-    "dev": "node --env-file=../.env --watch server.js",
-    "start": "node --env-file=../.env server.js",
+    "dev": "node --env-file=.env --watch server.js",
+    "start": "node --env-file=.env server.js",
     "build": "echo 'No build step needed'"
   },
   "dependencies": {
